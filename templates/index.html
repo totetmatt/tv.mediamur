@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta property="og:title" content="Tv.mediamur :: {{track}}" />
+
+<meta property="og:url" content="http://tv.mediamur.fr" />
+    <title>Tv.mediamur :: {{track}}</title>
+
+      <link href="http://vjs.zencdn.net/5.0.2/video-js.css" rel="stylesheet">
+<style>
+.btn {
+  -webkit-border-radius: 28;
+  -moz-border-radius: 28;
+  border-radius: 28px;
+  color: #ffffff;
+  font-size: 20px;
+  background: #080808;
+  padding: 10px 20px 10px 20px;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: #858585;
+  text-decoration: none;
+}
+.hidden {
+  display:none;
+}
+body {
+  background: #000;
+  color: #999;
+  text-align: center;
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 12px;
+}
+  .container {
+    width: 800px;
+    height: 600px;
+    margin: 0 auto;
+  
+  }
+  .info {
+      position: absolute;
+      left:10px;
+      top:0;
+      padding:10px;
+      font-size: 14px;
+      width: 100px;
+  }
+  .vjs-big-play-button {
+    display:none!important; 
+  }
+  #tw_screen_name{
+    font-weight: bold;
+    margin-right:10px;
+  }
+
+</style>
+  <!-- If you'd like to support IE8 -->
+  <script src="http://vjs.zencdn.net/ie8/1.1.0/videojs-ie8.min.js"></script>
+</head>
+
+<body>
+  <div class="info">
+    <h2>Status</h2>
+    <span id="info_text"></span><br/>
+    <span id="video_nb"></span>
+</div>
+<div class="container "><p>
+ Tv.Mediamur reflète l'activité vidéo des utilisateurs de Twitter. Il peut contenir du contenu non adaptées à un jeune public. <br/>
+ Tv.Mediamur is reflecting the video activity of twitter users. It might contains unadapted contents for youth.</p>
+ <p>Currently about: {{track}} <br/> <input type="checkbox" id="show_gif" checked> Get also gif  </p>
+                    <a id="ok-button" href="javascript:start();" class="btn">Start</a>
+                    <div id="tweet"><span id="tw_screen_name"></span><span id="tw_text"></span></div>
+    <video  id="my-video" class="video-js hidden" controls preload="auto" width="800" height="600" data-setup="{}">
+    <p class="vjs-no-js">
+      To view this video please enable JavaScript, and consider upgrading to a web browser that
+      <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+    </p>
+  </video>
+</div>
+
+  <script src="http://vjs.zencdn.net/5.0.2/video.js"></script>
+   <script type="text/javascript">
+    var myPlayer;
+    var playlist = [];
+    
+    var video_anti_duplicate = [];
+    var hashvideo_anti_duplicate = [];
+    
+    var socket;
+    info('Press Start');
+    document.onkeydown = key_event;
+    // Skip on press Right Arrow
+    function key_event(e) {
+        e = e || window.event;
+        if (e.keyCode == '39') {
+           console.log("Video Skip");
+                next_video();
+        }
+
+    }
+    function next_video(){
+      if(playlist.length >= 1) {
+                 var play = playlist.shift();
+                     myPlayer.src(play['url']);
+                     myPlayer.play();
+                     document.getElementById('tw_screen_name').textContent ="";
+                     document.getElementById('tw_screen_name').appendChild(document.createTextNode(play['user']))
+                     document.getElementById('tw_text').textContent ="";
+                     document.getElementById('tw_text').appendChild(document.createTextNode(play['text']) )
+                   }
+                   update_nb_video_list();
+    }
+    function update_nb_video_list(){
+        document.getElementById("video_nb").textContent = playlist.length+" Videos remaining";
+    }
+    function start() {
+      myPlayer =videojs('my-video', {
+            "autoplay": false,
+            "preload": "auto",
+            "width": "100%",
+            "height": 390,
+            "controls": false,
+            controlBar: {
+              playToggle: false,
+            }
+          });      
+    document.getElementById("my-video").className = "video-js";
+    document.getElementById("ok-button").className = "hidden";
+    socket = new WebSocket("ws://{{hostname}}/ws");
+     
+      myPlayer.on('ended', function () {
+                console.log("Video ended");
+                next_video();
+              });
+      myPlayer.on('error', function(e){
+        console.log("Video Error "+e);
+        myPlayer.pause();
+        next_video();
+      })
+          socket.onopen = function(f){
+            console.log("OPEN");
+            info('Connected');
+          }
+          socket.onmessage = function(m){
+             var message = JSON.parse(m['data']);
+            
+          if(document.getElementById("show_gif").checked == false && message['url'].indexOf("https://video.twimg.com") > -1 || document.getElementById("show_gif").checked == true){
+               
+               if(video_anti_duplicate.indexOf(message['url']) == -1 &&
+                hashvideo_anti_duplicate.indexOf(message['md5']) == -1){
+                  playlist.push(message);
+                  video_anti_duplicate.push(message['url']);
+                  hashvideo_anti_duplicate.push(message['md5']);
+               
+                  if(myPlayer.paused() && playlist.length === 1 ){
+                     next_video();
+                  }
+                  update_nb_video_list();
+               }
+            }
+          }
+          socket.onclose = function(e){ 
+            info('Disconnected');
+          }
+          socket.onerror = function(e){
+            info('Error and Disconnected');
+            console.log("ERROR "+e);
+          }
+        }
+        function info(message){
+          document.getElementById("info_text").textContent = message;
+        }
+    </script>
+</body>
+
+</html>

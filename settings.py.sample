@@ -1,0 +1,17 @@
+import logging
+import os
+TWITTER_CONSUMER_KEY=os.getenv('TWITTER_CONSUMER_KEY','')
+TWITTER_CONSUMER_SECRET=os.getenv('TWITTER_CONSUMER_SECRET','')
+
+TWITTER_ACCESS_TOKEN=os.getenv('TWITTER_ACCESS_TOKEN','')
+TWITTER_ACCESS_TOKEN_SECRET=os.getenv('TWITTER_ACCESS_TOKEN_SECRET','')
+
+
+TWITTER_TRACK = os.getenv("TWITTER_TRACK",'').split(',')
+
+WS_PORT=8080
+
+LOG_LEVEL = logging.getLevelName(os.getenv('LOG_LEVEL','DEBUG'))
+
+APP_DEBUG = logging.getLevelName(os.getenv('APP_DEBUG',False))
+SERVICE_HOSTNAME = os.getenv("SERVICE_HOSTNAME",'localhost:8080')
